@@ -1,0 +1,67 @@
+<dom-module id="odant-themes-tree-node">
+    <template>
+        <style is="custom-style" include="odant-styles">
+            :host {
+                @apply --flex;
+                @apply --horizontal;
+                align-items: center;
+            }
+
+        </style>
+        <odant-item-menu context-item="[[_getIconContext(item)]]"></odant-item-menu>
+        <odant-item-icon context-item="[[_getIconContext(item)]]"></odant-item-icon>
+        <span class="label flex font-120">[[item.name]]</span>
+    </template>
+    <script>
+        Polymer({
+            is: "odant-themes-tree-node",
+            properties: {
+                item: {
+                    type: Object,
+                    notify: true
+                },
+                disabled:{
+                    type: Boolean,
+                    reflectToAttribute: true,
+                    computed: '_getDisabled(item)'
+                },
+                classToRemove: {
+                    type: String,
+                    value: '',
+                    notify: true
+                },
+                _defaultClasses: {
+                    type: Array,
+                    value: ()=>['body', 'layout', 'bar', 'toolbar', 'header', 'footer', 'content']
+                }
+            },
+
+            _getIconContext(item){
+                return item.base || item.file || item;
+            },
+
+            _getDisabled(item){
+                if (!item.items && item.level == 1) return false;
+                return !item || !item.file || item.file.inherit.yes;
+            },
+
+            _isColor(variable) {
+                return variable.var === 'background' || variable.var === 'color';
+            },
+
+            _removeClass(){
+                this.fire('remove-class');
+            },
+
+            _addClass(){
+                this.fire('add-class');
+            },
+
+            _isDefault(e){
+                if (this._defaultClasses.indexOf(e) != -1)
+                    return true;
+                return false;
+            }
+        });
+    </script>
+</dom-module>

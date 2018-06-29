@@ -1,0 +1,78 @@
+
+<link rel="import" href="/web/components/button/odant-button.html">
+<link rel="import" href="/web/components/checkbox/odant-checkbox.html">
+<link rel="import" href="/web/components/toolbar/toolbar.html">
+<link rel="import" href="theme-tree/odant-theme-tree.html">
+<link rel="import" href="rules-tree/odant-rules-tree.html">
+<link rel="import" href="theme-control/odant-theme-control.html">
+<link rel="import" href="/web/components/splitter/odant-splitter.html">
+
+<dom-module id="odant-theme">
+    <template>
+        <style include="odant-styles">
+            :host {
+                @apply --horizontal;
+                @apply --flex;
+                flex-wrap: wrap;
+                /*overflow: hidden;*/
+            }
+
+            paper-item {
+                --paper-item: {
+                    cursor: pointer;
+                    @apply(--content);
+                };
+            }
+
+            .tree-title {
+                float: left;
+                font-size: 20px;
+                text-align: center;
+            }
+
+            odant-rules-tree {
+                width: 300px;
+            }
+
+            odant-theme-control {
+                height: 300px;
+                overflow-y: scroll;
+            }
+        </style>
+        <odant-item></odant-item>
+        <odant-theme-tree class="side-bar" context-item="[[contextItem]]" theme-file="{{themeFile}}"></odant-theme-tree>
+        <div class="vertical tree-themes">
+            <h2 class="tree-title">Base theme</h2>
+            <odant-rules-tree class="flex" context-item="[[contextItem]]" theme-file="{{themeFile}}" focused-item="{{focusedItem}}" is-class-removed="{{_isClassRemoved}}"></odant-rules-tree>
+        </div>
+        <odant-theme-control class="flex" item="[[focusedItem]]" _is-class-removed="[[_isClassRemoved]]"></odant-theme-control>
+    </template>
+    <script>
+        Polymer({
+            is: "odant-theme",
+            properties: {
+                _isClassRemoved: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                }
+            },
+
+            attached() {
+                this.listen(document, 'stylesWasUpdated', '_onStylesWasUpdated');
+            },
+
+            detached() {
+                this.unlisten(document, 'stylesWasUpdated', '_onStylesWasUpdated');
+            },
+
+            _onStylesWasUpdated() {
+                this.updateStyles();
+            },
+
+            _onSplit(e, d) {
+                e.target.parentElement.style.width = e.target.parentElement.offsetWidth + d.dx + 'px';
+            }
+        });
+    </script>
+</dom-module>

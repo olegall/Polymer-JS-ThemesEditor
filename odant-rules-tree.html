@@ -1,0 +1,136 @@
+<link rel="import" href="/web/components/tree/odant-tree.html">
+<link rel="import" href="/web/components/table/odant-table.html">
+<link rel="import" href="odant-rules-tree-node.html">
+<dom-module id="odant-rules-tree">
+    <template>
+        <style is="custom-style" include="odant-styles">
+            :host{
+                @apply(--vertical);
+            }
+        </style>
+        <odant-table id="tree" class="flex" data-set="[[items]]" focused-item="{{focusedItem}}" hide-header hide-row-lines allow-focus auto-width>
+            <odant-table-column name="name" hide-expanders="5" tree-mode>
+                <template>
+                    <odant-rules-tree-node item="[[item]]"></odant-rules-tree-node>
+                </template>
+            </odant-table-column>
+        </odant-table>
+    </template>
+    <script>
+        Polymer({
+            is: "odant-rules-tree",
+            properties: {
+                _contextItem: {
+                    observer: '_contextItemChanged'
+                },
+                themeFile:{
+                    observer: '_themeFileChanged'
+                },
+                items:{
+                    type: Array,
+                    value: ()=> [],
+                    notify: true,
+                    observer: '_itemsChanged'
+                },
+                focusedItem: {
+                    notify: true
+                },
+                tree: {
+                    type: Object,
+                    value: function () {
+                        return this.$$('odant-table');
+                    }
+                },
+                _leafNum:{
+                    type: Number,
+                    value: 0
+                },
+                _leafs: {
+                    type: Array,
+                    value:()=> []
+                },
+                isClassRemoved: {
+                    type: Boolean,
+                    value: false,
+                    notify: true,
+                    observer: '_isClassRemovedChanged'
+                }
+            },
+            listeners:{
+                'remove-class': '_removeClass',
+                'add-class': '_addClass'
+            },
+
+            _itemsChanged(){
+                let a = this.items;
+            },
+
+            _isClassRemovedChanged(){
+                //let aa = this.isClassRemoved;
+                this.isClassRemoved = false;
+            },
+
+            _contextItemChanged(item){
+                if (item){
+                    if(!item instanceof odaBase) {
+                        this._contextItem = item.Base;
+                    }
+                    else {
+                        item.getFile('themes/theme.json').then(file => {
+                            this.themeFile = file;
+                        });
+                    }
+                }
+            },
+
+            _themeFileChanged(file){
+                if (file && file.url){
+                    ODANT.API.get(file.url).then(items => {
+                        ODANT.parseTheme(items);
+                        this.set('items', items);
+                    });
+                }
+            },
+
+            _removeClass(){
+                this._removeItemByProp(this.items, 'name', this.focusedItem.name);
+                this._updateTree();
+                this.isClassRemoved = true;
+            },
+
+            _addClass(){
+                let input = document.createElement('input');
+                input.placeholder = 'New class';
+                ODANT.showDialog({component: input, label: 'Add class'})
+                     .then(function (dlg) {
+                        if (dlg.value.length > 0) {
+                            if (!this.focusedItem.items) this.focusedItem.items = [];
+                            this.focusedItem.items.push({name: dlg.value,
+                                                         vars: [{var: "background",  val: "var(--layout-background)"},
+                                                                {var: "color",       val: "var(--body-color)"},
+                                                                {var: "font-family", val: "var(--body-font-family)"}],
+                                                         items: [],
+                                                         parent: this.focusedItem.name});
+                            this._updateTree();
+                        }
+                    }.bind(this));
+            },
+
+            _removeItemByProp(items, propName, propVal) {
+                for (let i = 0; i < items.length; i++) {
+                    if (items[i][propName] === propVal) {
+                        items.splice(i, 1);
+                        return;
+                    }
+                    if (items[i].items) {
+                        this._removeItemByProp(items[i].items, propName, propVal);
+                    }
+                }
+            },
+
+            _updateTree(){
+                this.$.tree.refresh();
+            }
+        });
+    </script>
+</dom-module>

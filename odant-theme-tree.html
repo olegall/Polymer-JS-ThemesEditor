@@ -1,0 +1,117 @@
+<link rel="import" href="/web/components/table/odant-table.html">
+<link rel="import" href="odant-themes-tree-node.html">
+<dom-module id="odant-theme-tree">
+    <template>
+        <style is="custom-style" include="odant-styles">
+            :host {
+                @apply --vertical;
+                @apply --flex;
+            }
+        </style>
+        <odant-table id="tree" class="flex" data-set="[[_themes]]" focused-item="{{themeFile}}" hide-row-lines allow-focus auto-width>
+            <odant-table-column name="name" hide-expanders="0" tree-mode label="Select theme">
+                <template>
+                    <odant-themes-tree-node item="[[item]]"></odant-themes-tree-node>
+                </template>
+            </odant-table-column>
+        </odant-table>
+    </template>
+    <script>
+        Polymer({
+            is: "odant-theme-tree",
+            properties: {
+                contextItem: {
+                    type: Object,
+                    observer: '_contextItemChanged'
+                },
+                themeFile: {
+                    notify: true,
+                    observer: '_themeFileChanged'
+                },
+                _themes: {
+                    type: Array,
+                    notify: true
+                }
+            },
+            _contextItemChanged(item) {
+                if (item) {
+                    if (!item instanceof odaBase) this.contextItem = item.Base;
+                    else {
+                        item.getFiles('themes/*.json').then(files => {
+                            this.themeFile = files.find(f => f.name === 'theme');
+                            item.Host.Work.then(base =>{
+                                base.Bases.then(bases =>{
+                                    this._getBasesAsTree(bases).then((basesAsTree) => {
+                                        let currentHostThemes = files.filter(file => typeof file !== 'undefined');
+                                        this._themes = this._getThemesFormattedForTree(currentHostThemes, basesAsTree);
+                                    });
+                                })
+                            });
+                        });
+                    }
+                }
+            },
+            _getBasesAsTree(bases) {
+                if (bases) {
+                    let items = bases.map(b =>{
+                        return b.Bases.then(items => {
+                            return b.getFile('themes/theme.json').then(file=>{
+                                return {name: b.label, base: b, file: file, items: items};
+                            }).catch(err=>{
+                                console.log(err);
+                                return {};
+                            })
+                        })
+                    });
+                    return Promise.all(items).then(items => {
+                        return this._getItems(items);
+                    })
+                }
+                return Promise.resolve([]);
+            },
+            _getItems(items) {
+                return new Promise(resolve => {
+                    let items_ = items.map(item => {
+                        return this._getBasesAsTree(item.items).then(items => {
+                            item.items = items || [];
+                            this.$.tree.refresh();
+                            return item;
+                        });
+                    });
+                    return Promise.all(items_).then(items => {
+                        resolve(items.filter(i => this._checkItem(i)));
+                    });
+                });
+            },
+            _checkItem(item) {
+                if (!item) return false;
+                return item.file.inherit.level === 0 || (item.file.inherit.level === 4 && this._haveChildsOwnTheme(item.items));
+            },
+            _haveChildsOwnTheme(items){
+                if (items.length === 0) return false;
+                for (let item of items) {
+                    if (item.file.inherit.level === 0 || this._haveChildsOwnTheme(item.items)) return true;
+                }
+                return false;
+            },
+            _themeFileChanged(file) {
+                if (file && file.file) {
+                    file.file.load().then((scheme) => {
+                        ODANT.parseTheme(scheme);
+                        document.dispatchEvent(new CustomEvent('stylesWasUpdated'));
+                        this.set('items', scheme);
+                    });
+                }
+            },
+            _getThemesFormattedForTree(themes, bases) {
+                const sign = 'theme.json';
+                let mapCallback = item => ({file: item, name: item.name, icon: 'icons:grade'});
+                let themeForCurrent = [themes.find(item => item.id === sign)].map(mapCallback);
+                let themesForThemes = themes.filter(item => item.id !== sign).map(mapCallback);
+                return [{name: 'Current',icon: 'icons:home', items: themeForCurrent},
+                        {name: 'Themes', icon: 'editor:format-paint', items: themesForThemes},
+                        {name: 'Customs', icon: 'icons:cloud', items: bases}]
+            },
+        });
+    </script>
+</dom-module>

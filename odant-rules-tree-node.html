@@ -1,0 +1,67 @@
+<link rel="import" href="../theme-inputs/odant-theme-color.html">
+<dom-module id="odant-rules-tree-node">
+    <template>
+        <style is="custom-style" include="odant-styles">
+            :host {
+                @apply(--flex);
+            }
+            :host > div {
+                align-items: baseline !important;
+                margin: 2px;
+                padding: 0 4px;
+            }
+            .class-name{
+                float: left;
+                margin: 15px 10px 0 0;
+            }
+        </style>
+        <h4 class="class-name flex">[[item.name]]</h4>
+        <div class$="vertical flex [[item.name]]">
+            <div class="horizontal">
+                <template is="dom-repeat" items="{{item.vars}}" filter="_isColor" as="variable">
+                    <odant-theme-color size="20" item="{{item}}" variable="{{variable}}" title="[[variable.var]]"></odant-theme-color>
+                </template>
+                <odant-button on-tap="_addClass" icon="icons:add"></odant-button>
+                <odant-button on-tap="_removeClass" icon="icons:clear" hidden$="[[_isDefault(item.name)]]"></odant-button>
+            </div>
+        </div>
+    </template>
+    <script>
+        Polymer({
+            is: "odant-rules-tree-node",
+            properties: {
+                item: {
+                    type: Object,
+                    notify: true
+                },
+                classToRemove: {
+                    type: String,
+                    value: '',
+                    notify: true
+                },
+                _defaultClasses: {
+                    type: Array,
+                    value: ()=>['body', 'layout', 'bar', 'toolbar', 'header', 'footer', 'content']
+                }
+            },
+
+            _isColor(variable) {
+                return variable.var === 'background' || variable.var === 'color';
+            },
+
+            _removeClass(){
+                this.fire('remove-class');
+            },
+
+            _addClass(){
+                this.fire('add-class');
+            },
+
+            _isDefault(e){
+                if (this._defaultClasses.indexOf(e) != -1)
+                    return true;
+                return false;
+            }
+        });
+    </script>
+</dom-module>
